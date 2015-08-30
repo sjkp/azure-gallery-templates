@@ -1,0 +1,54 @@
+{
+    "$schema": "http://schemas.microsoft.org/azure/deploymentTemplate?api-version=2015-01-01-preview#",
+    "contentVersion": "1.0",
+    "parameters": {
+        "accountName": { "type": "string" },
+        "regionId": { "type": "string" },
+        "name": { "type": "string" },
+        "kind": { "type": "string" },
+        "scriptCenterUri": { "type": "string" },
+        "description": { "type": "string" },
+        "provisioningType": { "type": "string" }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "name": "[parameters('accountName')]",
+            "type": "Microsoft.Automation/automationAccounts",
+            "apiVersion": "2015-01-01-preview",
+            "location": "[parameters('regionId')]",
+            "dependsOn": [
+            ],
+            "tags": {
+            },
+            "properties": {
+                "sku": {
+                    "name": "Free"
+                }
+            },
+            "resources": [
+                {
+                    "name": "[parameters('name')]",
+                    "type": "runbooks",
+                    "apiVersion": "2015-01-01-preview",
+                    "location": "[parameters('regionId')]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Automation/automationAccounts/', parameters('accountName'))]"
+                    ],
+                    "tags": {
+                    },
+                    "properties": {
+                        "runbookType": "[parameters('kind')]",
+                        "logProgress": "false",
+                        "logVerbose": "false",
+                        "description": "[parameters('description')]",
+                        "draft": { }
+                    }
+                }
+            ]
+        }
+    ],
+    "outputs": {
+    }
+}

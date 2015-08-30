@@ -1,0 +1,100 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "clusterName": { 
+            "type": "string"
+        },
+        "httpUserCredentials": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "name": "[parameters('clusterName')]",
+            "type": "Microsoft.Sql/servers/databases",
+            "apiVersion": "2014-04-01-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+            "clusterVersion": "3.2",
+            "osType": "Windows",
+            "clusterDefinition":
+            {
+                "blueprint": "https://clusterblueprint.azurehdinsight.net/hadoop-2.1.json",
+                "kind":"HADOOP",
+                "configurations":
+                {
+                    "gateway": "[parameters('httpUserCredentials')]"
+                    
+                    //"coreSite":
+                    //{
+                    //    "fs_default_name": "wasb://container@storageaccount.blob.core.windows.net",
+                    //    "fs_azure_account_key": "somekey"
+                    //}
+                }
+            },
+            "computeProfile":
+            {
+                "roles": [
+                    {
+                        "name": "headnode",
+                        "minInstanceCount": 1,
+                        "targetInstanceCount": 2,
+                        "hardwareProfile":
+                        {
+                            "vmSize": "Standard_A4"
+                        },
+                        "osProfile":
+                        {
+                            "windowsOperatingSystemProfile":
+                            {
+                                "rdpSettings":
+                                {
+                                    "username": "user",
+                                    "password": "password",
+                                    "expiryDate": "2015-03-01"
+                                }
+                            }
+                        },
+                        "virtualNetworkProfile":
+                        {
+                            "id": "vnetid",
+                            "subnet": "subnetname"
+                        }
+                    },
+                    {
+                        "name": "workernode",
+                        "minInstanceCount": 9,
+                        "targetInstanceCount": 10,
+                        "hardwareProfile":
+                        {
+                            "vmSize": "Standard_A4"
+                        },
+                        "osProfile":
+                        {
+                            "windowsOperatingSystemProfile":
+                            {
+                                "rdpSettings":
+                                {
+                                    "username": "user",
+                                    "password": "password",
+                                    "expiryDate": "2015-03-01"
+                                }
+                            }
+                        },
+                        "virtualNetworkProfile":
+                        {
+                            "id": "vnetid",
+                            "subnet": "subnetname"
+                        }
+                    }
+                ]
+            }
+        }
+		
+        }
+    ]
+}

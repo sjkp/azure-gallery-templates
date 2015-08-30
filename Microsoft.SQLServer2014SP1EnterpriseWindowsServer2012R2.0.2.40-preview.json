@@ -1,0 +1,133 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "newStorageAccountName": {
+      "type": "String"
+    },
+    "newDomainName": {
+      "type": "String"
+    },
+    "newVirtualNetworkName": {
+      "type": "String"
+    },
+    "vnetAddressSpace": {
+      "type": "String"
+    },
+    "hostName": {
+      "type": "String"
+    },
+    "userName": {
+      "type": "String"
+    },
+    "password": {
+      "type": "SecureString"
+    },
+    "location": {
+      "type": "String"
+    },
+    "hardwareSize": {
+      "type": "String"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ClassicStorage/storageAccounts",
+      "name": "[parameters('newStorageAccountName')]",
+      "apiVersion": "2014-06-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "accountType": "Standard-GRS"
+      }
+    },
+    {
+      "type": "Microsoft.ClassicCompute/domainNames",
+      "name": "[parameters('newDomainName')]",
+      "apiVersion": "2014-06-01",
+      "location": "[parameters('location')]",
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.ClassicNetwork/virtualNetworks",
+      "name": "[parameters('newVirtualNetworkName')]",
+      "apiVersion": "2014-06-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('vnetAddressSpace')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "Subnet-1",
+            "addressPrefix": "[parameters('vnetAddressSpace')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.ClassicCompute/virtualMachines",
+      "name": "[parameters('hostName')]",
+      "apiVersion": "2014-06-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "domainName": {
+          "id": "[concat(resourceGroup().id, '/providers/Microsoft.ClassicCompute/domainNames/', parameters('newDomainName'))]"
+        },
+        "networkProfile": {
+          "virtualNetwork": {
+            "id": "[concat(resourceGroup().id, '/providers/Microsoft.ClassicNetwork/virtualNetworks/', parameters('newVirtualNetworkName'))]",
+            "subnetNames": [
+              "Subnet-1"
+            ]
+          },
+          "inputEndpoints": [
+            {
+              "enableDirectServerReturn": "False",
+              "endpointName": "Remote Desktop",
+              "privatePort": 3389,
+              "publicPort": null,
+              "protocol": "tcp"
+            },
+            {
+              "enableDirectServerReturn": "False",
+              "endpointName": "Powershell",
+              "privatePort": 5986,
+              "publicPort": 5986,
+              "protocol": "tcp"
+            }
+          ]
+        },
+        "hardwareProfile": {
+          "size": "[parameters('hardwareSize')]",
+          "platformGuestAgent": "true"
+        },
+        "operatingSystemProfile": {
+          "computerName": "[parameters('hostName')]",
+          "adminUserName": "[parameters('userName')]",
+          "adminPassword": "[parameters('password')]",
+          "windowsOperatingSystemProfile": {
+            "winRMListeners": [
+              {
+                "protocol": "Https"
+              }
+            ]
+          }
+        },
+        "storageProfile": {
+          "operatingSystemDisk": {
+            "diskName": "[concat(parameters('newDomainName'), '-', parameters('hostName'), '-osdisk')]",
+            "vhdUri": "[concat(reference(concat('Microsoft.ClassicStorage/storageAccounts/', parameters('newStorageAccountName'))).endpoints[0], 'vhds/', parameters('newDomainName'), '-', parameters('hostName'), '-osdisk.vhd')]",
+            "caching": "ReadWrite",
+            "sourceImageName": "fb83b3509582419d99629ce476bcb5c8__SQL-Server-20140SP1-12.0.4100.1-Ent-ENU-Win2012R2-cy15su05"
+          }
+        }
+      },
+      "dependsOn": [
+        "[concat('Microsoft.ClassicCompute/domainNames/', parameters('newDomainName'))]",
+        "[concat('Microsoft.ClassicNetwork/virtualNetworks/', parameters('newVirtualNetworkName'))]"
+      ]
+    }
+  ]
+}

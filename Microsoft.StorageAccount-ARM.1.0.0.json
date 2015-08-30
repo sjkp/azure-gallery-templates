@@ -1,0 +1,136 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "name": {
+      "type": "string"
+    },
+    "accountType": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "enableDiagnostics": {
+      "type": "bool",
+      "defaultValue": true
+    },
+    "metricsRetention": {
+      "type": "string",
+      "defaultValue": "P7D"
+    },
+    "metricsLevel": {
+      "type": "string",
+      "defaultValue": "ServiceAndApi",
+      "allowedValues": [
+        "None",
+        "Service",
+        "ServiceAndApi"
+      ]
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-05-01-preview",
+      "name": "[parameters('name')]",
+      "location": "[parameters('location')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "properties": {
+        "accountType": "[parameters('accountType')]"
+      }
+    },
+    {
+      "apiVersion": "2014-04-01",
+      "name": "[concat(parameters('name'), '/blob/storage')]",
+      "type": "Microsoft.Storage/storageAccounts/services/diagnosticSettings",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', parameters('name'))]"
+      ],
+      "properties": {
+        "odata.type": "Microsoft.Azure.Management.Insights.Models.StorageConfiguration",
+        "logging": {
+          "delete": "[parameters('enableDiagnostics')]",
+          "read": "[parameters('enableDiagnostics')]",
+          "write": "[parameters('enableDiagnostics')]"
+        },
+        "metrics": {
+          "aggregations": [
+            {
+              "scheduledTransferPeriod": "PT1H",
+              "retention": "[parameters('metricsRetention')]",
+              "level": "[parameters('metricsLevel')]"
+            },
+            {
+              "scheduledTransferPeriod": "PT1M",
+              "retention": "[parameters('metricsRetention')]",
+              "level": "[parameters('metricsLevel')]"
+            }
+          ]
+        },
+        "storageAccount": "[parameters('name')]"
+      }
+    },
+    {
+      "apiVersion": "2014-04-01",
+      "name": "[concat(parameters('name'), '/table/storage')]",
+      "type": "Microsoft.Storage/storageAccounts/services/diagnosticSettings",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', parameters('name'))]"
+      ],
+      "properties": {
+        "odata.type": "Microsoft.Azure.Management.Insights.Models.StorageConfiguration",
+        "logging": {
+          "delete": "[parameters('enableDiagnostics')]",
+          "read": "[parameters('enableDiagnostics')]",
+          "write": "[parameters('enableDiagnostics')]"
+        },
+        "metrics": {
+          "aggregations": [
+            {
+              "scheduledTransferPeriod": "PT1H",
+              "retention": "[parameters('metricsRetention')]",
+              "level": "[parameters('metricsLevel')]"
+            },
+            {
+              "scheduledTransferPeriod": "PT1M",
+              "retention": "[parameters('metricsRetention')]",
+              "level": "[parameters('metricsLevel')]"
+            }
+          ]
+        },
+        "storageAccount": "[parameters('name')]"
+      }
+    },
+    {
+      "apiVersion": "2014-04-01",
+      "name": "[concat(parameters('name'), '/queue/storage')]",
+      "type": "Microsoft.Storage/storageAccounts/services/diagnosticSettings",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', parameters('name'))]"
+      ],
+      "properties": {
+        "odata.type": "Microsoft.Azure.Management.Insights.Models.StorageConfiguration",
+        "logging": {
+          "delete": "[parameters('enableDiagnostics')]",
+          "read": "[parameters('enableDiagnostics')]",
+          "write": "[parameters('enableDiagnostics')]"
+        },
+        "metrics": {
+          "aggregations": [
+            {
+              "scheduledTransferPeriod": "PT1H",
+              "retention": "[parameters('metricsRetention')]",
+              "level": "[parameters('metricsLevel')]"
+            },
+            {
+              "scheduledTransferPeriod": "PT1M",
+              "retention": "[parameters('metricsRetention')]",
+              "level": "[parameters('metricsLevel')]"
+            }
+          ]
+        },
+        "storageAccount": "[parameters('name')]"
+      }
+    }
+  ]
+}

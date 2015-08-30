@@ -1,0 +1,70 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "administratorLogin": {
+      "type": "string"
+    },
+    "administratorLoginPassword": {
+      "type": "securestring"
+    },
+    "databaseName": {
+      "type": "string"
+    },
+    "requestedServiceObjectiveId": {
+        "type": "string",
+        "defaultValue": "2E6CD037-12AB-422A-8AD1-E5FB75ABFC30"
+    }, 
+    "location": {
+        "type": "string"
+    },
+    "serverName": {
+      "type": "string"
+    },
+	"version": {
+		"type": "string"
+	}
+  },
+  "resources": [
+    {
+      "apiVersion": "2014-04-01-preview",
+      "location": "[parameters('location')]",
+      "name": "[parameters('serverName')]",
+      "properties": {
+        "administratorLogin": "[parameters('administratorLogin')]",
+        "administratorLoginPassword": "[parameters('administratorLoginPassword')]",
+        "version": "[parameters('version')]"
+      },
+      "resources": [
+        {
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[concat('Microsoft.Sql/servers/', parameters('serverName'))]"
+          ],
+          "location": "[parameters('location')]",
+          "name": "[parameters('databaseName')]",
+          "properties": {
+            "edition": "DataWarehouse",
+            "requestedServiceObjectiveId": "[parameters('requestedServiceObjectiveId')]"
+          },
+          "type": "databases"
+        },
+        {
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[concat('Microsoft.Sql/servers/', parameters('serverName'))]"
+          ],
+          "location": "[parameters('location')]",
+          "name": "AllowAllWindowsAzureIps",
+          "properties": {
+            "endIpAddress": "0.0.0.0",
+            "startIpAddress": "0.0.0.0"
+          },
+          "type": "firewallrules"
+        }
+      ],
+      "type": "Microsoft.Sql/servers"
+    }
+  ],
+  "variables": {}
+}

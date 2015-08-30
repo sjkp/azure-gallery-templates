@@ -1,0 +1,308 @@
+{
+  "$schema": "http://schemas.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+  "contentVersion": "1.1.0.1",
+  "parameters": {
+    "name": {
+      "type": "String",
+      "defaultValue": "NewsEntryService"
+    },
+    "location": {
+      "type": "String",
+      "defaultValue": "East US"
+    },
+     "metadata": { 
+        "type": "Object",
+         "defaultValue": {}
+    } 
+  },
+  "variables": {
+    "nugetFeed": "http://apiapps-preview.nuget.org/api/v2/",
+    "gatewayPackageId": "Microsoft.Azure.AppService.ApiApps.Gateway",
+    "gatewayVersion": "0.9.26",
+    "apiAppPackageId": "NewsEntryService",
+    "apiAppPackageVersion": "1.0.1",
+    "signingKey": "e17ad1e43e9bf9ef5572eaeaf5b64c8157a104e5a5a3b2c661b0d6199cb16dd7",
+    "apiAppName": "[parameters('name')]",
+    "gatewayName": "[concat(parameters('name'), 'Gateway')]",
+    "gatewaySiteName": "[concat(parameters('name'), 'GatewaySite')]",
+    "gatewaySiteExtensionName": "Microsoft.Azure.AppService.ApiApps.Gateway",
+    "apiAppSiteName": "[concat(parameters('name'), 'ApiAppSite')]",
+    "apiAppSiteExtensionName": "NewsEntryService",
+    "webHostingPlanName": "[concat(parameters('name'), 'HostingPlan')]",
+    "apiVersion": "2015-03-01-preview",
+    "apiAppIdentityName": "[concat(parameters('name'), 'ApiApp')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2015-04-01",
+      "name": "[variables('webHostingPlanName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "name": "[variables('webHostingPlanName')]",
+        "sku": "Standard",
+        "workerSize": "0",
+        "numberOfWorkers": 1
+      }
+    },
+    {
+      "name": "[variables('apiAppIdentityName')]",
+      "type": "Microsoft.AppService/appIdentities",
+      "apiVersion": "2015-03-01-preview",
+      "location": "East US",
+      "properties": {
+        "description": "PowerApp Application",
+        "audiences": [
+          "[concat('http://', variables('gatewaySiteName'), '.azurewebsites.net')]"
+        ],
+        "tenantId": "[parameters('metadata').v01.tenantId]",
+        "availableToOtherTenants": false,
+        "replyUrls": [
+          "[concat('http://', variables('gatewaySiteName'), '.azurewebsites.net', '/login/aad')]",
+            "[concat('https://', variables('gatewaySiteName'), '.azurewebsites.net', '/signin-aad')]",
+            "[concat('https://', variables('gatewaySiteName'), '.azurewebsites.net')]"
+        ],
+          "requiredResourceAccess": [
+            {
+              "resourceAppId": "00000007-0000-0000-c000-000000000000",
+              "resourceAccess": [
+                {
+                  "id": "78ce3f0f-a1ce-49c2-8cde-64b5c0896db4",
+                  "type": "Scope"
+                }
+              ]
+            },
+            {
+              "resourceAppId": "00000002-0000-0000-c000-000000000000",
+              "resourceAccess": [
+                {
+                  "id": "311a71cc-e848-46a1-bdf8-97ff7156d8e6",
+                  "type": "Scope"
+                }
+              ]
+            }
+          ]
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2015-04-01",
+      "name": "[variables('gatewaySiteName')]",
+      "location": "[parameters('location')]",
+      "kind": "gateway",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('webHostingPlanName'))]"
+      ],
+      "properties": {
+        "name": "[variables('gatewaySiteName')]",
+        "gatewaySiteName": "[variables('gatewaySiteName')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('webHostingPlanName'))]",
+        "siteConfig": {
+          "appSettings": [
+             {
+              "name": "MS_MicrosoftPackageSID",
+              "value": "ms-app://s-1-15-2-2042583786-3374378484-3347708265-2763583398-65683196-1515944517-1162200852/,ms-app://s-1-15-2-641735838-982680399-4240812263-3069171395-845075221-373337407-2405770632/, ms-app://s-1-15-2-2599833754-97093394-413759048-3418707023-3323368304-1435866999-263615825/"
+            },
+            {
+              "name": "EmaStorage",
+              "value": "D:\\home\\data\\apiapps"
+            },
+            {
+              "name": "EMA_ManagementSecret",
+              "value": "{disabled}"
+            },
+            {
+              "name": "MS_SigningKey",
+              "value": "[variables('signingKey')]"
+            },
+            {
+              "name": "MS_AadClientID",
+              "value": "[reference(resourceId('Microsoft.appService/appIdentities', variables('apiAppIdentityName'))).appId]"
+            },
+            {
+              "name": "MS_AadAudience",
+              "value": "[reference(resourceId('Microsoft.appService/appIdentities', variables('apiAppIdentityName'))).audiences[0]]"
+            },
+            {
+              "name": "MS_AadTenants",
+              "value": "[reference(resourceId('Microsoft.appService/appIdentities', variables('apiAppIdentityName'))).tenantId]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "type": "siteextensions",
+          "apiVersion": "2015-02-01",
+          "name": "[variables('gatewayPackageId')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))]"
+          ],
+          "properties": {
+            "type": "WebRoot",
+            "feed_url": "[variables('nugetFeed')]",
+            "version": "[variables('gatewayVersion')]"
+          }
+        },
+        {
+          "type": "providers/links",
+          "apiVersion": "2015-01-01",
+          "name": "Microsoft.Resources/gateway",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))]"
+          ],
+          "properties": {
+            "targetId": "[resourceId('Microsoft.AppService/gateways', variables('gatewayName'))]"
+          }
+        }
+      ]
+    },
+    {
+      "type": "Microsoft.AppService/gateways",
+      "apiVersion": "[variables('apiVersion')]",
+      "name": "[variables('gatewayName')]",
+      "location": "[parameters('location')]",
+      "resources": [
+        {
+          "type": "providers/links",
+          "apiVersion": "2015-01-01",
+          "name": "Microsoft.Resources/gatewaySite",
+          "dependsOn": [
+            "[resourceId('Microsoft.AppService/gateways', variables('gatewayName'))]"
+          ],
+          "properties": {
+            "targetId": "[resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))]"
+          }
+        }
+      ],
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))]",
+        "[resourceId('Microsoft.Web/sites/siteextensions', variables('gatewaySiteName'), variables('gatewayPackageId'))]"
+      ],
+      "properties": {
+        "host": {
+          "resourceName": "[variables('gatewaySiteName')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2015-04-01",
+      "name": "[variables('apiAppSiteName')]",
+      "location": "[parameters('location')]",
+      "kind": "apiApp",
+      "resources": [
+        {
+          "type": "siteextensions",
+          "apiVersion": "2015-02-01",
+          "name": "[variables('apiAppPackageId')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('apiAppSiteName'))]"
+          ],
+          "properties": {
+            "type": "WebRoot",
+            "feed_url": "[variables('nugetFeed')]",
+            "version": "[variables('apiAppPackageVersion')]"
+          }
+        },
+        {
+          "type": "providers/links",
+          "apiVersion": "2015-01-01",
+          "name": "Microsoft.Resources/apiApp",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('apiAppSiteName'))]"
+          ],
+          "properties": {
+            "targetId": "[resourceId('Microsoft.AppService/apiapps', variables('apiAppName'))]"
+          }
+        }
+      ],
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))]",
+        "[resourceId('Microsoft.Web/serverfarms', variables('webHostingPlanName'))]"
+      ],
+      "properties": {
+        "name": "[variables('apiAppSiteName')]",
+        "gatewaySiteName": "[variables('gatewaySiteName')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('webHostingPlanName'))]",
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "EMA_MicroserviceId",
+              "value": "[variables('apiAppName')]"
+            },
+            {
+              "name": "EMA_Secret",
+              "value": "{disabled}"
+            },
+            {
+              "name": "EMA_RuntimeUrl",
+              "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))).hostNames[0])]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.AppService/apiapps",
+      "apiVersion": "[variables('apiVersion')]",
+      "name": "[variables('apiAppName')]",
+      "location": "[parameters('location')]",
+      "resources": [
+        {
+          "type": "providers/links",
+          "apiVersion": "2015-01-01",
+          "name": "Microsoft.Resources/apiAppSite",
+          "dependsOn": [
+            "[resourceId('Microsoft.AppService/apiapps', variables('apiAppName'))]"
+          ],
+          "properties": {
+            "targetId": "[resourceId('Microsoft.Web/sites', variables('apiAppSiteName'))]"
+          }
+        }
+      ],
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites/siteextensions', variables('apiAppSiteName'), variables('apiAppSiteExtensionName'))]",
+        "[resourceId('Microsoft.appService/gateways' , variables('gatewayName'))]"
+      ],
+      "properties": {
+        "accessLevel": "PublicAuthenticated",
+        "package": {
+          "id": "[variables('apiAppSiteExtensionName')]"
+        },
+        "host": {
+          "resourceName": "[variables('apiAppSiteName')]"
+        },
+        "gateway": {
+          "resourceName": "[variables('gatewayName')]"
+        },
+        "dependencies": []
+      }
+    }
+  ],
+  "outputs": {
+    "gatewayUrl": {
+      "type": "String",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))).hostNames[0])]"
+    },
+    "resourcesBaseUrl": {
+      "type": "String",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', variables('apiAppSiteName'))).hostNames[0])]"
+    },
+    "wadlUris": {
+      /* This is deprecated, but don't want to remove it yet until clients all update */
+      "type": "Array",
+      "value": [
+        "[concat('https://', reference(resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))).hostNames[0], '/api/service/apidef/', variables('apiAppName'), '?api-version=2015-01-14&format=wadl-siena')]"
+      ]
+    },
+    "wadlUri": {
+      "type": "String",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', variables('gatewaySiteName'))).hostNames[0], '/api/service/apidef/', variables('apiAppName'), '?api-version=2015-01-14&format=wadl-siena')]"
+    },
+    "type": {
+      "type": "String",
+      "value": "ApiApp"
+    }
+  }
+}
